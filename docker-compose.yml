@@ -1,0 +1,110 @@
+services:
+  login-service:
+    build: ./services/login
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=secret/login-service
+    depends_on:
+      - mongo
+      - vault
+    networks:
+      - backend
+
+  comment-service:
+    build: ./services/comments
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=development
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=secret/comment-service
+    depends_on:
+      - mongo
+      - rabbitmq
+      - vault
+    networks:
+      - backend
+
+  project-service:
+    build: ./services/projects
+    ports:
+      - "8001:8001"
+    environment:
+      - ENV=development
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=secret/project-service
+    depends_on:
+      - mongo
+    networks:
+      - backend
+
+  notify-service:
+    build: ./services/notifications
+    environment:
+      - ENV=development
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=secret/notifications-service
+    depends_on:
+      - rabbitmq
+      - vault
+    networks:
+      - backend
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    networks:
+      - backend
+
+  vault:
+    image: hashicorp/vault:latest
+    container_name: vault
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_LOCAL_CONFIG: >
+        {
+          "backend": {
+            "file": {
+              "path": "/vault/file"
+            }
+          },
+          "listener": {
+            "tcp": {
+              "address": "0.0.0.0:8200",
+              "tls_disable": true
+            }
+          },
+          "default_lease_ttl": "168h",
+          "max_lease_ttl": "720h"
+        }
+    volumes:
+      - vault-data:/vault/file
+    command: server
+    networks:
+      - backend
+
+volumes:
+  vault-data:
+
+networks:
+  backend:
+    driver: bridge
