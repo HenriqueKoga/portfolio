@@ -5,7 +5,6 @@ Este projeto é um portfólio profissional desenvolvido com arquitetura de micro
 🔥 Funcionalidades
 
 - ✅ Login via Google e GitHub (OAuth2)
-- ✅ Página inicial com informações profissionais
 - ✅ Sessão de comentários públicos e privados
 - ✅ Sessão de projetos desenvolvidos com suas stacks
 - ✅ Sessão de contato
@@ -22,7 +21,6 @@ Este projeto é um portfólio profissional desenvolvido com arquitetura de micro
 | **Comment Service** | Python    | FastAPI, SQLAlchemy, JWT  | MongoDB                  | RabbitMQ, Vault     |
 | **Project Service** | Python    | FastAPI, SQLAlchemy, JWT  | MongoDB                  | Vault               |
 | **Notify Service**  | Go        | RabbitMQ, SMTP            | -                        | Vault, Email (SMTP) |
-| **Infraestrutura**  | Docker    | Docker Compose            | RabbitMQ, MongoDB, MySQL | Vault               |
 
 ## Tecnologias
 
