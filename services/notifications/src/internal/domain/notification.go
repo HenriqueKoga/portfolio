@@ -5,3 +5,15 @@ type CommentMessage struct {
 	Message    string `json:"message"`
 	IsPublic   bool   `json:"is_public"`
 }
+
+type NotificationService interface {
+	ProcessNotification(msg CommentMessage) error
+}
+
+type EmailSender interface {
+	Send(subject string, body string) error
+}
+
+type MessageConsumer interface {
+	ConsumeMessages(handler func(CommentMessage)) error
+}

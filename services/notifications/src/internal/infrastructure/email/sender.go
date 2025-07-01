@@ -6,7 +6,13 @@ import (
 	"os"
 )
 
-func SendEmail(subject, body string) error {
+type EmailSender struct{}
+
+func NewEmailSender() *EmailSender {
+	return &EmailSender{}
+}
+
+func (e *EmailSender) Send(subject string, body string) error {
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
 	smtpUser := os.Getenv("SMTP_USER")
@@ -16,13 +22,16 @@ func SendEmail(subject, body string) error {
 
 	auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
 
-	msg := []byte(fmt.Sprintf("Subject: %s\n\n%s", subject, body))
+	message := []byte(fmt.Sprintf(
+		"From: %s\nTo: %s\nSubject: %s\n\n%s",
+		from, to, subject, body,
+	))
 
 	addr := fmt.Sprintf("%s:%s", smtpHost, smtpPort)
 
-	err := smtp.SendMail(addr, auth, from, []string{to}, msg)
+	err := smtp.SendMail(addr, auth, from, []string{to}, message)
 	if err != nil {
-		return err
+		return fmt.Errorf("falha ao enviar email: %w", err)
 	}
 
 	fmt.Println("[EMAIL] Email enviado com sucesso.")
