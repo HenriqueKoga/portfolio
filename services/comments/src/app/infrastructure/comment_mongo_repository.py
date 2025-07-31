@@ -15,7 +15,7 @@ class CommentMongoRepository(CommentRepository):
         self.collection.create_index("created_at")
 
     def insert(self, comment: Comment) -> str:
-        result = self.collection.insert_one(comment.dict())
+        result = self.collection.insert_one(comment.model_dump())
         return str(result.inserted_id)
 
     def list_public(self, limit: int = 1000, offset: int = 0) -> List[Comment]:

@@ -23,5 +23,5 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         }
     except jwt.ExpiredSignatureError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired") from e
-    except jwt.InvalidTokenError as e:
+    except JWTError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
