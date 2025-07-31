@@ -11,7 +11,7 @@ function setupPassport(passport, authService) {
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             callbackURL: '/auth/google/callback',
         }, async (_, __, profile, done) => {
-            const name = profile.displayName || profile.username || profile._json.name;
+            const name = profile.displayName || profile.username || profile._json.name || profile.id;
             const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
             const user = await authService.findOrCreateUser(profile.id, name, 'google', email);
             done(null, user);
@@ -24,7 +24,7 @@ function setupPassport(passport, authService) {
             clientSecret: process.env.GITHUB_CLIENT_SECRET,
             callbackURL: '/auth/github/callback',
         }, async (_, __, profile, done) => {
-            const name = profile.displayName || profile.username || profile._json.name;
+            const name = profile.displayName || profile.username || profile._json.name || profile.id;
             const email = profile._json.email || (profile.emails && profile.emails[0] ? profile.emails[0].value : null);
             const user = await authService.findOrCreateUser(profile.id, name, 'github', email);
             done(null, user);
