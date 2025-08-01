@@ -3,6 +3,7 @@ import os
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
+from jose.exceptions import ExpiredSignatureError, JWTError
 
 security = HTTPBearer()
 
@@ -20,7 +21,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             "id": payload.get("id"),
             "name": payload.get("name")
         }
-    except jwt.ExpiredSignatureError as e:
+    except ExpiredSignatureError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired") from e
-    except jwt.InvalidTokenError as e:
+    except JWTError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
