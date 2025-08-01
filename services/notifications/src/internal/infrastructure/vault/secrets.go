@@ -8,7 +8,18 @@ import (
 	"os"
 )
 
-func LoadSecrets() error {
+// HTTPClient defines the interface for making HTTP requests.
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+type VaultLoader interface {
+	LoadSecrets(client HTTPClient) error
+}
+
+type RealVaultLoader struct{}
+
+func (rvl *RealVaultLoader) LoadSecrets(client HTTPClient) error {
 	vaultAddr := os.Getenv("VAULT_ADDR")
 	vaultToken := os.Getenv("VAULT_TOKEN")
 	secretPath := os.Getenv("VAULT_SECRET_PATH")
@@ -24,7 +35,6 @@ func LoadSecrets() error {
 	}
 	req.Header.Add("X-Vault-Token", vaultToken)
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("erro na requisição para Vault: %w", err)
@@ -62,3 +72,10 @@ func LoadSecrets() error {
 	fmt.Println("[VAULT] Todos os segredos carregados com sucesso!")
 	return nil
 }
+
+// LoadSecrets loads secrets from Vault and sets them as environment variables.
+func LoadSecrets(client HTTPClient) error {
+	loader := &RealVaultLoader{}
+	return loader.LoadSecrets(client)
+}
+
