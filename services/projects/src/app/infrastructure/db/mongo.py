@@ -13,6 +13,10 @@ def get_mongo_client() -> AsyncIOMotorClient:
         _mongo_client = AsyncIOMotorClient(mongo_uri)
     return _mongo_client
 
+def reset_client():
+    global _mongo_client
+    _mongo_client = None
+
 
 def get_mongo_collection(collection_name: str) -> AsyncIOMotorCollection:
     db_name = os.getenv("MONGO_DB_NAME", "projects")
