@@ -1,10 +1,9 @@
 import uvicorn
-from fastapi import FastAPI
-
 from app.infrastructure.vault import load_secrets
 from app.routes import routes
+from fastapi import FastAPI
 
-# load_secrets()
+load_secrets()
 
 app = FastAPI(
     title="Comment Service",
