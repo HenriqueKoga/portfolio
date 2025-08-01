@@ -26,4 +26,4 @@ def load_secrets():
         logger.info("[VAULT] Segredos carregados com sucesso.")
     except Exception as e:
         logger.error(f"[VAULT] Erro ao carregar segredos: {e}")
-        exit(1)
+        raise Exception(f"Erro ao carregar segredos: {e}")
