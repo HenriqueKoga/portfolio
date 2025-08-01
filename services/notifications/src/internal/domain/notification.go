@@ -15,5 +15,5 @@ type EmailSender interface {
 }
 
 type MessageConsumer interface {
-	ConsumeMessages(handler func(CommentMessage)) error
+	ConsumeMessages(handler func(CommentMessage), doneChan chan struct{}) error
 }

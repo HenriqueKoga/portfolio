@@ -205,3 +205,4 @@ yarn-error.log
 .npm/
 .yarn/
 coverage/
+coverage.out
