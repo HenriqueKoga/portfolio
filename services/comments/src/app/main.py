@@ -3,7 +3,15 @@ from app.infrastructure.vault import load_secrets
 from app.routes import routes
 from fastapi import FastAPI
 
-load_secrets()
+try:
+    load_secrets()
+except Exception as e:
+    print(f"Failed to load secrets: {e}")
+    # Depending on your deployment strategy, you might want to exit here
+    # or handle it differently for production vs. development/testing.
+    # For now, we'll let the application continue, but this might lead to
+    # further errors if secrets are truly essential.
+    pass
 
 app = FastAPI(
     title="Comment Service",
