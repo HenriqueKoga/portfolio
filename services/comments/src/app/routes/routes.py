@@ -16,14 +16,22 @@ def get_service():
     return CommentService(repository, publisher)
 
 
-@router.get("/comments/public", response_model=List[Comment])
-def get_comments(user: dict = Depends(get_current_user), service: CommentService = Depends(get_service)):
-    return service.get_public_comments()
+@router.get("/comments/all_public", response_model=List[Comment])
+def get_all_public_comments(service: CommentService = Depends(get_service)):
+    return service.get_all_public_comments()
 
 
-@router.post("/comments", status_code=status.HTTP_201_CREATED)
+@router.get("/comments/my", response_model=List[Comment])
+def get_my_comments(user: dict = Depends(get_current_user), service: CommentService = Depends(get_service)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return service.get_comments_by_user(user["id"])
+
+
+@router.post("/comments", response_model=Comment, status_code=status.HTTP_201_CREATED)
 def post_comment(comment: CommentCreate, user: dict = Depends(get_current_user), service: CommentService = Depends(get_service)):
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    return {"id": service.create_comment(comment, user["id"], user["name"])}
+    created_comment = service.create_comment(comment, user["id"], user["name"])
+    return created_comment

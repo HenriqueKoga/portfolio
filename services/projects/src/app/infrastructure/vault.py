@@ -24,6 +24,7 @@ def load_secrets():
             os.environ[key] = value
 
         logger.info("[VAULT] Segredos carregados com sucesso.")
+        logger.info(f"[VAULT] JWT_SECRET carregado: {os.getenv('JWT_SECRET')}")
     except Exception as e:
         logger.error(f"[VAULT] Erro ao carregar segredos: {e}")
         exit(1)

@@ -5,14 +5,18 @@ VAULT_CONTAINER="vault"
 VAULT_ADDR="http://127.0.0.1:8200"
 INIT_FILE="vault-init.txt"
 ENV_DIR="./envs"
-SECRET_PATHS=("login-service" "comment-service")
 
 echo "🔐 Iniciando setup do Vault..."
 
-# Define comando base
 VAULT_EXEC="docker exec -e VAULT_ADDR=$VAULT_ADDR $VAULT_CONTAINER vault"
 
-# Verifica se está em modo dev (in-memory)
+echo "⏳ Aguardando o Vault ficar pronto..."
+while ! curl -s "$VAULT_ADDR/v1/sys/health" > /dev/null; do
+    echo "   ...ainda aguardando..."
+    sleep 2
+done
+echo "✅ Vault está pronto e respondendo!"
+
 DEV_MODE=$($VAULT_EXEC status -format=json | grep '"storage_type": "inmem"' || true)
 
 if [[ -n "$DEV_MODE" ]]; then
@@ -41,17 +45,14 @@ else
   $VAULT_EXEC login "$ROOT_TOKEN" >/dev/null
 fi
 
-# Habilita KV se necessário
 $VAULT_EXEC secrets enable -path=secret kv || true
 
-# Carrega segredos
 for ENV_FILE in "$ENV_DIR"/*.env; do
   SERVICE_NAME=$(basename "$ENV_FILE" .env)
   SECRET_PATH="secret/${SERVICE_NAME}"
 
-  echo "🔄 Processando: $SERVICE_NAME ($ENV_FILE)"
+  echo "🔄 Processando: $SERVICE_NAME ($ENV_FILE)" 
   
-  # Converte em lista key=value (ignora comentários)
   ENV_VARS=$(grep -v '^#' "$ENV_FILE" | xargs)
 
   if [ -z "$ENV_VARS" ]; then
@@ -59,11 +60,32 @@ for ENV_FILE in "$ENV_DIR"/*.env; do
     continue
   fi
 
-  # Carrega os dados no Vault
-  docker exec -e VAULT_ADDR=$VAULT_ADDR -e VAULT_TOKEN=$VAULT_TOKEN vault \
-    vault kv put "$SECRET_PATH" $ENV_VARS
+  $VAULT_EXEC kv put "$SECRET_PATH" $ENV_VARS
 
   echo "✅ Secrets enviados para: $SECRET_PATH"
 done
+
+echo "
+📜 Criando política para acesso aos segredos..."
+HOST_POLICY_FILE=$(mktemp /tmp/app-policy.XXXXXX.hcl)
+printf 'path "secret/*" { capabilities = ["read", "list"] }\n' > "$HOST_POLICY_FILE"
+
+docker cp "$HOST_POLICY_FILE" "$VAULT_CONTAINER:/tmp/app-policy.hcl"
+$VAULT_EXEC policy write app-policy /tmp/app-policy.hcl
+rm "$HOST_POLICY_FILE"
+
+echo "
+🔍 Verificando política 'app-policy'માંથી..."
+$VAULT_EXEC policy read app-policy
+
+
+
+echo "
+🔑 Gerando token com a nova política..."
+APP_TOKEN=$($VAULT_EXEC token create -policy="app-policy" -policy="default" -display-name="app-token" -format=json | grep "client_token" | awk '{print $NF}' | tr -d '",')
+
+echo "
+🔍 Verificando token gerado..."
+$VAULT_EXEC token lookup $APP_TOKEN
 
 echo "🎉 Setup completo!"

@@ -2,6 +2,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from unittest.mock import MagicMock
+from datetime import datetime, timezone
 
 from app.main import app
 from app.routes import routes
@@ -65,12 +66,25 @@ async def async_client():
 @pytest.mark.asyncio
 async def test_post_comment_success(async_client, mock_comment_service, authorized_user):
     comment_create_data = CommentCreate(message="New comment from test", is_public=True)
-    mock_comment_service.create_comment.return_value = "mock_inserted_id"
+    
+    # Mock create_comment to return a full Comment object as the service would
+    mock_comment_service.create_comment.return_value = Comment(
+        id="mock_inserted_id",
+        user_id=authorized_user["id"],
+        user_name=authorized_user["name"],
+        message=comment_create_data.message,
+        is_public=comment_create_data.is_public,
+        created_at=datetime.now(timezone.utc) # Add created_at for completeness
+    )
 
     response = await async_client.post("/comments", json=comment_create_data.model_dump())
 
     assert response.status_code == status.HTTP_201_CREATED
-    assert response.json() == {"id": "mock_inserted_id"}
+    # Assert the response matches the mocked return value (converted to dict)
+    assert response.json()["id"] == "mock_inserted_id"
+    assert response.json()["message"] == comment_create_data.message
+    assert response.json()["user_id"] == authorized_user["id"]
+    
     mock_comment_service.create_comment.assert_called_once_with(
         comment_create_data,
         authorized_user["id"],
@@ -81,27 +95,27 @@ async def test_post_comment_success(async_client, mock_comment_service, authoriz
 @pytest.mark.asyncio
 async def test_get_public_comments_success(async_client, mock_comment_service):
     mock_comments = [
-        Comment(id="id1", author_id="user1", author_name="User One", message="Comment 1", is_public=True),
-        Comment(id="id2", author_id="user2", author_name="User Two", message="Comment 2", is_public=True),
+        Comment(id="id1", user_id="user1", user_name="User One", message="Comment 1", is_public=True, created_at=datetime.now(timezone.utc)),
+        Comment(id="id2", user_id="user2", user_name="User Two", message="Comment 2", is_public=True, created_at=datetime.now(timezone.utc)),
     ]
-    mock_comment_service.get_public_comments.return_value = mock_comments
+    mock_comment_service.get_all_public_comments.return_value = mock_comments
 
-    response = await async_client.get("/comments/public")
+    response = await async_client.get("/comments/all_public") # Corrected endpoint
 
     assert response.status_code == status.HTTP_200_OK
     # Convert Comment objects to dictionaries for comparison, handling datetime
     expected_json = [
         {
             "id": c.id,
-            "author_id": c.author_id,
-            "author_name": c.author_name,
+            "user_id": c.user_id,
+            "user_name": c.user_name,
             "message": c.message,
             "is_public": c.is_public,
             "created_at": c.created_at.isoformat().replace("+00:00", "Z")
         } for c in mock_comments
     ]
     assert response.json() == expected_json
-    mock_comment_service.get_public_comments.assert_called_once()
+    mock_comment_service.get_all_public_comments.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -123,7 +137,7 @@ async def test_post_comment_unauthorized(async_client):
 
 
 @pytest.mark.asyncio
-async def test_get_public_comments_unauthorized(async_client):
+async def test_get_my_comments_unauthorized(async_client):
     
     # Temporarily override get_current_user to simulate unauthorized access
     def _unauthorized_user():
@@ -131,7 +145,7 @@ async def test_get_public_comments_unauthorized(async_client):
 
     app.dependency_overrides[routes.get_current_user] = _unauthorized_user
 
-    response = await async_client.get("/comments/public")
+    response = await async_client.get("/comments/my") # Test the authenticated endpoint
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}

@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
@@ -14,6 +13,7 @@ const app = express();
 
 (async () => {
     await loadSecrets();
+    console.log("Login Service JWT_SECRET:", process.env.JWT_SECRET);
     const client = await MongoClient.connect(process.env.MONGO_URI);
     const db = client.db();
 
