@@ -33,11 +33,16 @@ func runApp(vaultLoader vault.VaultLoader, emailSender domain.EmailSender, notif
 }
 
 func main() {
+	loader := &vault.RealVaultLoader{}
+	if err := loader.LoadSecrets(http.DefaultClient); err != nil {
+		log.Fatalf("[VAULT] Falha ao carregar secrets: %v", err)
+	}
+
 	emailSender := email.NewEmailSender()
 	service := application.NewNotificationService(emailSender)
 	consumer := rabbitmq.NewRabbitMQConsumer()
 
-	if err := runApp(&vault.RealVaultLoader{}, emailSender, service, consumer); err != nil {
+	if err := runApp(loader, emailSender, service, consumer); err != nil {
 		log.Fatalf("Erro na aplicação: %v", err)
 	}
 }
