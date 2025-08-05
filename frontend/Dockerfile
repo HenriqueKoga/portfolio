@@ -6,9 +6,9 @@ ENV REACT_APP_API_URL=$REACT_APP_API_URL
 WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm install
+RUN npm install --frozen-lockfile
 
 COPY . .
 
+EXPOSE 3000
 CMD ["npm", "start"]
