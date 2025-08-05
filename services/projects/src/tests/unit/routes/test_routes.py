@@ -1,11 +1,14 @@
+import os
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
-with patch('app.infrastructure.vault.load_secrets', return_value=None):
+from app.domain.project import Project
+from app.routes.routes import get_service, get_current_user
+
+# Patch load_secrets before importing app
+with patch('app.infrastructure.vault.load_secrets'):
     from app.main import app
-    from app.domain.project import Project
-    from app.routes.routes import get_service, get_current_user
 
 @pytest.fixture
 def mock_project_service():
@@ -13,7 +16,7 @@ def mock_project_service():
 
 @pytest.fixture
 def mock_get_current_user():
-    return lambda: {"username": "testuser"}
+    return lambda: {"id": "test_user_id", "username": "testuser"}
 
 @pytest.fixture(autouse=True)
 def override_dependencies(mock_project_service, mock_get_current_user):
@@ -22,7 +25,10 @@ def override_dependencies(mock_project_service, mock_get_current_user):
     yield
     app.dependency_overrides = {}
 
-def test_create_project(mock_project_service):
+def test_create_project(mock_project_service, monkeypatch):
+    monkeypatch.setenv("AUTHORIZED_USER_ID", "test_user_id")
+    monkeypatch.setenv("JWT_SECRET", "test_jwt_secret")
+
     client = TestClient(app)
     project_data = {"name": "Test Project", "description": "A test project", "stack": ["Python"], "repo_url": "http://test.com", "tags": ["test"], "visible": True}
     mock_project_service.create_project.return_value = Project(**project_data, id="1")
