@@ -10,7 +10,7 @@ jest.mock('passport', () => ({
     authenticate: jest.fn((strategy, options, callback) => {
         return (req, res, next) => {
             if (options && options.session === false) {
-                req.user = {}; 
+                req.user = {};
                 next(); // Proceed to the next middleware/route handler
             } else {
                 next();
@@ -27,15 +27,15 @@ describe('authRoutes', () => {
 
     beforeEach(() => {
         originalProcessEnv = process.env;
-        process.env = { 
-            ...originalProcessEnv, 
-            JWT_SECRET: 'test_jwt_secret', 
+        process.env = {
+            ...originalProcessEnv,
+            JWT_SECRET: 'test_jwt_secret',
             JWT_EXPIRATION: '1h',
             AUTH_CALLBACK_URL: 'http://localhost'
         };
 
         app = express();
-        
+
         passport.initialize.mockClear();
         passport.session.mockClear();
         passport.authenticate.mockClear();
@@ -44,8 +44,8 @@ describe('authRoutes', () => {
         passport.session.mockReturnValue((req, res, next) => next());
 
         app.use(passport.initialize());
-        app.use(passport.session()); 
-        
+        app.use(passport.session());
+
         process.env.AUTH_CALLBACK_URL = 'http://localhost';
         app.use('/auth', authRoutes());
 
@@ -88,24 +88,46 @@ describe('authRoutes', () => {
         const response = await request(app).get('/auth/google/callback');
 
         expect(response.statusCode).toBe(302);
-        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token`);
+        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token&refreshToken=mock_jwt_token`);
         expect(passport.authenticate).toHaveBeenCalledWith('google', { session: false });
-        expect(mockUser.toJSON).toHaveBeenCalledTimes(1);
-        expect(jwt.sign).toHaveBeenCalledWith(mockUser.toJSON(), 'test_jwt_secret', {
-            expiresIn: '1h',
-        });
+        expect(mockUser.toJSON).toHaveBeenCalledTimes(2);
+        expect(jwt.sign).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            id: '123',
+            name: 'Test User',
+            provider: 'google',
+            email: 'test@example.com',
+            type: 'access',
+        }), 'test_jwt_secret', { expiresIn: '1h' });
+        expect(jwt.sign).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            id: '123',
+            name: 'Test User',
+            provider: 'google',
+            email: 'test@example.com',
+            type: 'refresh',
+        }), 'test_jwt_secret', { expiresIn: '7d' });
     });
 
     it('should redirect with JWT token for GitHub callback', async () => {
         const response = await request(app).get('/auth/github/callback');
 
         expect(response.statusCode).toBe(302);
-        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token`);
+        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token&refreshToken=mock_jwt_token`);
         expect(passport.authenticate).toHaveBeenCalledWith('github', { session: false });
-        expect(mockUser.toJSON).toHaveBeenCalledTimes(1);
-        expect(jwt.sign).toHaveBeenCalledWith(mockUser.toJSON(), 'test_jwt_secret', {
-            expiresIn: '1h',
-        });
+        expect(mockUser.toJSON).toHaveBeenCalledTimes(2);
+        expect(jwt.sign).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            id: '123',
+            name: 'Test User',
+            provider: 'google',
+            email: 'test@example.com',
+            type: 'access',
+        }), 'test_jwt_secret', { expiresIn: '1h' });
+        expect(jwt.sign).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            id: '123',
+            name: 'Test User',
+            provider: 'google',
+            email: 'test@example.com',
+            type: 'refresh',
+        }), 'test_jwt_secret', { expiresIn: '7d' });
     });
 
     it('should use default JWT_EXPIRATION if not set in env', async () => {
@@ -113,9 +135,20 @@ describe('authRoutes', () => {
         const response = await request(app).get('/auth/google/callback');
 
         expect(response.statusCode).toBe(302);
-        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token`);
-        expect(jwt.sign).toHaveBeenCalledWith(mockUser.toJSON(), 'test_jwt_secret', {
-            expiresIn: '1h',
-        });
+        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token&refreshToken=mock_jwt_token`);
+        expect(jwt.sign).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            id: '123',
+            name: 'Test User',
+            provider: 'google',
+            email: 'test@example.com',
+            type: 'access',
+        }), 'test_jwt_secret', { expiresIn: '1h' });
+        expect(jwt.sign).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            id: '123',
+            name: 'Test User',
+            provider: 'google',
+            email: 'test@example.com',
+            type: 'refresh',
+        }), 'test_jwt_secret', { expiresIn: '7d' });
     });
 });
