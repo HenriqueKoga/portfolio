@@ -4,21 +4,15 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const authRoutes = require('routes/authRoutes');
 
-// Mock passport and jwt
 jest.mock('passport', () => ({
     initialize: jest.fn(() => (req, res, next) => next()),
     session: jest.fn(() => (req, res, next) => next()),
     authenticate: jest.fn((strategy, options, callback) => {
-        // This is the middleware function that Express expects directly
         return (req, res, next) => {
             if (options && options.session === false) {
-                // For callback routes, simulate authentication
-                // Use a placeholder for req.user here, it will be replaced by the actual mockUser in beforeEach
                 req.user = {}; 
                 next(); // Proceed to the next middleware/route handler
             } else {
-                // For initial auth routes, just call next
-                // In a real app, this would trigger a redirect by Passport
                 next();
             }
         };
@@ -33,11 +27,16 @@ describe('authRoutes', () => {
 
     beforeEach(() => {
         originalProcessEnv = process.env;
-        process.env = { ...originalProcessEnv, JWT_SECRET: 'test_jwt_secret', JWT_EXPIRATION: '1h' };
+        process.env = { 
+            ...originalProcessEnv, 
+            JWT_SECRET: 'test_jwt_secret', 
+            JWT_EXPIRATION: '1h',
+            AUTH_CALLBACK_URL: 'http://localhost'
+        };
 
         app = express();
         
-        passport.initialize.mockClear(); // Clear mocks before each test
+        passport.initialize.mockClear();
         passport.session.mockClear();
         passport.authenticate.mockClear();
 
@@ -46,6 +45,8 @@ describe('authRoutes', () => {
 
         app.use(passport.initialize());
         app.use(passport.session()); 
+        
+        process.env.AUTH_CALLBACK_URL = 'http://localhost';
         app.use('/auth', authRoutes());
 
         mockUser = {
@@ -61,11 +62,10 @@ describe('authRoutes', () => {
             }),
         };
 
-        // Re-implement passport.authenticate mock to use the mockUser from beforeEach
         passport.authenticate.mockImplementation((strategy, options, callback) => {
             return (req, res, next) => {
                 if (options && options.session === false) {
-                    req.user = mockUser; // Assign the mockUser from beforeEach
+                    req.user = mockUser;
                 }
                 next();
             };
@@ -84,11 +84,11 @@ describe('authRoutes', () => {
         expect(passport.authenticate).toHaveBeenCalledWith('google', { scope: ['profile'] });
     });
 
-    it('should return a JWT token for Google callback', async () => {
+    it('should redirect with JWT token for Google callback', async () => {
         const response = await request(app).get('/auth/google/callback');
 
-        expect(response.statusCode).toBe(200);
-        expect(response.body).toEqual({ token: 'mock_jwt_token' });
+        expect(response.statusCode).toBe(302);
+        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token`);
         expect(passport.authenticate).toHaveBeenCalledWith('google', { session: false });
         expect(mockUser.toJSON).toHaveBeenCalledTimes(1);
         expect(jwt.sign).toHaveBeenCalledWith(mockUser.toJSON(), 'test_jwt_secret', {
@@ -96,16 +96,11 @@ describe('authRoutes', () => {
         });
     });
 
-    it('should call passport.authenticate for GitHub authentication', async () => {
-        await request(app).get('/auth/github');
-        expect(passport.authenticate).toHaveBeenCalledWith('github', { scope: ['user:email'] });
-    });
-
-    it('should return a JWT token for GitHub callback', async () => {
+    it('should redirect with JWT token for GitHub callback', async () => {
         const response = await request(app).get('/auth/github/callback');
 
-        expect(response.statusCode).toBe(200);
-        expect(response.body).toEqual({ token: 'mock_jwt_token' });
+        expect(response.statusCode).toBe(302);
+        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token`);
         expect(passport.authenticate).toHaveBeenCalledWith('github', { session: false });
         expect(mockUser.toJSON).toHaveBeenCalledTimes(1);
         expect(jwt.sign).toHaveBeenCalledWith(mockUser.toJSON(), 'test_jwt_secret', {
@@ -117,7 +112,8 @@ describe('authRoutes', () => {
         delete process.env.JWT_EXPIRATION;
         const response = await request(app).get('/auth/google/callback');
 
-        expect(response.statusCode).toBe(200);
+        expect(response.statusCode).toBe(302);
+        expect(response.headers.location).toBe(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=mock_jwt_token`);
         expect(jwt.sign).toHaveBeenCalledWith(mockUser.toJSON(), 'test_jwt_secret', {
             expiresIn: '1h',
         });

@@ -10,23 +10,26 @@ class CommentService:
         self.repository = repository
         self.publisher = publisher
 
-    def create_comment(self, data: CommentCreate, author_id: str, author_name: str) -> str:
+    def create_comment(self, data: CommentCreate, user_id: str, user_name: str) -> Comment:
         comment = Comment(
-            author_id=author_id,
-            author_name=author_name,
+            user_id=user_id,
+            user_name=user_name,
             message=data.message,
             is_public=data.is_public,
             created_at=datetime.now(timezone.utc),
         )
-        inserted_id = self.repository.insert(comment)
+        inserted_comment = self.repository.insert(comment)
 
         self.publisher.publish_comment({
-            "author_name": author_name,
+            "user_name": user_name,
             "message": data.message,
             "is_public": data.is_public
         })
 
-        return inserted_id
+        return inserted_comment
 
-    def get_public_comments(self) -> List[Comment]:
+    def get_all_public_comments(self) -> List[Comment]:
         return self.repository.list_public()
+
+    def get_comments_by_user(self, user_id: str) -> List[Comment]:
+        return self.repository.list_by_user(user_id)

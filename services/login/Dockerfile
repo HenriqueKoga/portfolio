@@ -2,4 +2,4 @@ FROM node:18
 WORKDIR /app
 COPY . .
 RUN npm install
-CMD ["node", "src/main.js"]
+CMD ["bash", "-c", "env && node src/main.js"]

@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 from app.domain.project import Project
@@ -20,6 +21,15 @@ async def create_project(
     user: dict = Depends(get_current_user),
     service: ProjectService = Depends(get_service)
 ):
+    authorized_user_id = os.getenv("AUTHORIZED_USER_ID")
+    print(f"[PROJECTS_API] User ID from token: {user.get('id')}")
+    print(f"[PROJECTS_API] Authorized User ID from env: {authorized_user_id}")
+
+    if not authorized_user_id:
+        raise HTTPException(status_code=500, detail="AUTHORIZED_USER_ID not set")
+
+    if user.get("id") != authorized_user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to create projects")
     return await service.create_project(project)
 
 

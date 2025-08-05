@@ -14,12 +14,24 @@ class CommentMongoRepository(CommentRepository):
         self.collection.create_index("is_public")
         self.collection.create_index("created_at")
 
-    def insert(self, comment: Comment) -> str:
-        result = self.collection.insert_one(comment.model_dump())
-        return str(result.inserted_id)
+    def insert(self, comment: Comment) -> Comment:
+        comment_dict = comment.model_dump(by_alias=True)
+        result = self.collection.insert_one(comment_dict)
+        comment.id = str(result.inserted_id)
+        return comment
 
     def list_public(self, limit: int = 1000, offset: int = 0) -> List[Comment]:
         cursor = self.collection.find({"is_public": True}).sort("created_at", DESCENDING).limit(limit).skip(offset)
+
+        results = []
+        for doc in cursor:
+            doc["id"] = str(doc["_id"])
+            del doc["_id"]
+            results.append(Comment(**doc))
+        return results
+
+    def list_by_user(self, user_id: str, limit: int = 1000, offset: int = 0) -> List[Comment]:
+        cursor = self.collection.find({"user_id": user_id}).sort("created_at", DESCENDING).limit(limit).skip(offset)
 
         results = []
         for doc in cursor:

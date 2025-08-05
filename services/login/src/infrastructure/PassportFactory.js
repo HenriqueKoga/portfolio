@@ -9,7 +9,7 @@ function setupPassport(passport, authService) {
         new GoogleStrategy({
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: '/auth/google/callback',
+            callbackURL: process.env.GOOGLE_CALLBACK_URL,
         }, async (_, __, profile, done) => {
             const name = profile.displayName || profile.username || profile._json.name || profile.id;
             const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
@@ -22,7 +22,7 @@ function setupPassport(passport, authService) {
         new GitHubStrategy({
             clientID: process.env.GITHUB_CLIENT_ID,
             clientSecret: process.env.GITHUB_CLIENT_SECRET,
-            callbackURL: '/auth/github/callback',
+            callbackURL: process.env.GITHUB_CALLBACK_URL,
         }, async (_, __, profile, done) => {
             const name = profile.displayName || profile.username || profile._json.name || profile.id;
             const email = profile._json.email || (profile.emails && profile.emails[0] ? profile.emails[0].value : null);

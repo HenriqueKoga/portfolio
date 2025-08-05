@@ -9,8 +9,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./src ./src
 
-ENV PYTHONPATH=/app/src
-
-EXPOSE 8000
-
-CMD ["uvicorn", "src.app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["bash", "-c", "export PYTHONPATH=$PYTHONPATH:/app/src && uvicorn app.main:app --host 0.0.0.0 --port 8001"]

@@ -12,8 +12,9 @@ class CommentCreate(BaseModel):
 
 class Comment(CommentCreate):
     id: Optional[str] = Field(default=None)
-    author_id: str
-    author_name: str
+    user_id: str
+    user_name: str
+    is_public: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -24,3 +25,6 @@ class CommentRepository(ABC):
 
     @abstractmethod
     def list_public(self, limit: int = 100, offset: int = 0) -> list[Comment]: ...
+
+    @abstractmethod
+    def list_by_user(self, user_id: str, limit: int = 100, offset: int = 0) -> list[Comment]: ...

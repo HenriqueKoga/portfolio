@@ -12,7 +12,7 @@ function authRoutes() {
             const token = jwt.sign(req.user.toJSON(), process.env.JWT_SECRET, {
                 expiresIn: process.env.JWT_EXPIRATION || '1h',
             });
-            res.json({ token });
+            res.redirect(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=${token}`);
         });
 
     router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
@@ -22,7 +22,7 @@ function authRoutes() {
             const token = jwt.sign(req.user.toJSON(), process.env.JWT_SECRET, {
                 expiresIn: process.env.JWT_EXPIRATION || '1h',
             });
-            res.json({ token });
+            res.redirect(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=${token}`);
         });
 
     return router;
