@@ -1,21 +1,30 @@
 import React from 'react';
-import { Navbar, Nav, Container } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import './NavigationBar.css';
 
 const NavigationBar = () => {
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  };
+
   return (
-    <Navbar bg="dark" variant="dark" expand="lg">
-      <Container>
-        <Navbar.Brand as={Link} to="/">Portfolio</Navbar.Brand>
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        <Navbar.Collapse id="basic-navbar-nav">
-          <Nav className="me-auto">
-            <Nav.Link as={Link} to="/projects">Projects</Nav.Link>
-            <Nav.Link as={Link} to="/comments">Comments</Nav.Link>
-          </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+    <nav className="navbar">
+      <Link to="/" className="navbar-brand">Portfolio</Link>
+      <div className="navbar-collapse">
+        <ul className="navbar-nav">
+          <li className="nav-item">
+            <Link to="/projects" className="nav-link">Projects</Link>
+          </li>
+          <li className="nav-item">
+            <Link to="/comments" className="nav-link">Comments</Link>
+          </li>
+          <li className="nav-item logout">
+            <button className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={handleLogout}>Logout</button>
+          </li>
+        </ul>
+      </div>
+    </nav>
   );
 };
 

@@ -48,17 +48,17 @@ const Comments = () => {
   };
 
   return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4" style={{ color: '#343a40' }}>Comentários</h2>
+    <div className="page-content-container">
+      <div className="summary-card">
+        <h2 className="comments-header">Comentários</h2>
 
-      <div className="card shadow-sm mb-5" style={{ borderRadius: '10px' }}>
-        <div className="card-body">
-          <h3 className="card-title mb-3" style={{ color: '#007bff' }}>Postar Novo Comentário</h3>
+        <div className="post-comment-card">
+          <h3>Postar Novo Comentário</h3>
           <form onSubmit={handlePostComment}>
-            <div className="mb-3">
+            <div className="form-group">
               <label htmlFor="commentMessage" className="form-label">Mensagem</label>
               <textarea
-                className="form-control"
+                className="form-textarea"
                 id="commentMessage"
                 rows="3"
                 value={newCommentMessage}
@@ -66,59 +66,59 @@ const Comments = () => {
                 required
               ></textarea>
             </div>
-            <div className="mb-3 form-check form-switch">
+            <div className="form-checkbox-group">
               <input
                 type="checkbox"
-                className="form-check-input"
+                className="form-checkbox-input"
                 id="commentIsPublic"
                 checked={newCommentIsPublic}
                 onChange={(e) => setNewCommentIsPublic(e.target.checked)}
               />
-              <label className="form-check-label" htmlFor="commentIsPublic">Comentário Público</label>
+              <label className="form-label" htmlFor="commentIsPublic">Comentário Público</label>
             </div>
-            <button type="submit" className="btn btn-primary w-100">Postar Comentário</button>
+            <button type="submit" className="submit-button">Postar Comentário</button>
           </form>
         </div>
-      </div>
 
-      <div className="row">
-        <div className="col-md-6">
-          <h3 className="mb-3" style={{ color: '#343a40' }}>Comentários Públicos</h3>
-          {publicComments.length > 0 ? (
-            <ul className="list-group shadow-sm" style={{ borderRadius: '10px' }}>
-              {publicComments.map(comment => (
-                <li className="list-group-item d-flex justify-content-between align-items-center" key={comment.id}>
-                  <div>
-                    <strong>{comment.user_name}:</strong> {comment.message}
-                  </div>
-                  <small className="text-muted">{new Date(comment.created_at).toLocaleString()}</small>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="alert alert-info text-center" role="alert">
-              Nenhum comentário público encontrado.
-            </div>
-          )}
-        </div>
-        <div className="col-md-6">
-          <h3 className="mb-3" style={{ color: '#343a40' }}>Meus Comentários</h3>
-          {myComments.length > 0 ? (
-            <ul className="list-group shadow-sm" style={{ borderRadius: '10px' }}>
-              {myComments.map(comment => (
-                <li className="list-group-item d-flex justify-content-between align-items-center" key={comment.id}>
-                  <div>
-                    <strong>{comment.user_name} ({comment.is_public ? 'Público' : 'Privado'}):</strong> {comment.message}
-                  </div>
-                  <small className="text-muted">{new Date(comment.created_at).toLocaleString()}</small>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="alert alert-info text-center" role="alert">
-              Nenhum comentário seu encontrado.
-            </div>
-          )}
+        <div className="comment-section">
+          <div className="comment-list-section">
+            <h3>Comentários Públicos</h3>
+            {publicComments.length > 0 ? (
+              <ul className="comment-list">
+                {publicComments.map(comment => (
+                  <li className="comment-item" key={comment.id}>
+                    <div>
+                      <strong>{comment.user_name}:</strong> {comment.message}
+                    </div>
+                    <small>{new Date(comment.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</small>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="no-comments-message">
+                Nenhum comentário público encontrado.
+              </div>
+            )}
+          </div>
+          <div className="comment-list-section">
+            <h3>Meus Comentários</h3>
+            {myComments.length > 0 ? (
+              <ul className="comment-list">
+                {myComments.map(comment => (
+                  <li className="comment-item" key={comment.id}>
+                    <div>
+                      <strong>{comment.user_name} ({comment.is_public ? 'Público' : 'Privado'}):</strong> {comment.message}
+                    </div>
+                    <small>{new Date(comment.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</small>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="no-comments-message">
+                Nenhum comentário seu encontrado.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

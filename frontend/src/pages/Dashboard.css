@@ -1,0 +1,29 @@
+.dashboard-container {
+  padding: 2rem;
+}
+
+.summary-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.summary-card h2 {
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.summary-card p {
+  line-height: 1.6;
+}
+
+.summary-card a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.summary-card a:hover {
+  text-decoration: underline;
+}

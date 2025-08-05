@@ -1,0 +1,58 @@
+/* ...existing code... */
+.navbar {
+  background-color: #6c2eb6;
+  /* Roxo escuro que combina com a cor primária */
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  color: white;
+}
+
+
+.navbar-brand {
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.5rem;
+  text-decoration: none;
+  margin-right: 2rem;
+  /* Adiciona espaço entre a marca e os itens do menu */
+}
+
+.navbar-nav {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+
+
+
+.nav-item {
+  margin-right: 1.5rem;
+}
+
+.nav-item.logout {
+  margin-left: 2rem;
+  margin-right: 0;
+  display: flex;
+  align-items: center;
+}
+
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--primary-color);
+  background-color: #e6d6fa;
+  text-decoration: underline;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+}

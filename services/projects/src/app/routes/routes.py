@@ -14,6 +14,12 @@ def get_service():
     repository = ProjectMongoRepository()
     return ProjectService(repository)
 
+@router.get("/projects/can-create")
+async def can_create_project(user: dict = Depends(get_current_user)):
+    authorized_user_id = os.getenv("AUTHORIZED_USER_ID")
+    if not authorized_user_id:
+        return {"can_create": False}
+    return {"can_create": user.get("id") == authorized_user_id}
 
 @router.post("/projects", response_model=Project)
 async def create_project(

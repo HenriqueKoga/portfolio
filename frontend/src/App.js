@@ -5,7 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Comments from './pages/Comments';
 import AuthCallback from './pages/AuthCallback'; // Importa o novo componente
-import 'bootstrap/dist/css/bootstrap.min.css';
+import NavigationBar from './components/NavigationBar'; // Importa o NavigationBar
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -13,22 +13,17 @@ const PrivateRoute = ({ children }) => {
 };
 
 function App() {
+  const currentPath = window.location.pathname;
+  const showNavBar = currentPath !== '/login' && currentPath !== '/auth/callback';
   return (
     <Router>
+      {showNavBar && <NavigationBar />}
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/auth/callback" element={<AuthCallback />} /> {/* Nova rota para o callback */}
-        <Route 
-          path="/" 
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        >
-          <Route path="projects" element={<Projects />} />
-          <Route path="comments" element={<Comments />} />
-        </Route>
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/projects" element={<PrivateRoute><Projects /></PrivateRoute>} />
+        <Route path="/comments" element={<PrivateRoute><Comments /></PrivateRoute>} />
       </Routes>
     </Router>
   );
