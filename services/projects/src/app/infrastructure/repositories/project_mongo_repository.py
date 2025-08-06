@@ -21,10 +21,36 @@ class ProjectMongoRepository(ProjectRepository):
         return None
 
     async def create(self, project: Project) -> Project:
-        data = project.dict()
+        data = project.model_dump()
         data["_id"] = ObjectId()  # novo ObjectId
         del data["id"]
 
         await self.collection.insert_one(data)
         project.id = str(data["_id"])
         return project
+
+    async def update(self, project_id: str, project: Project) -> Project | None:
+        try:
+            data = project.model_dump()
+            del data["id"]  # Remove id from update data
+
+            result = await self.collection.update_one(
+                {"_id": ObjectId(project_id)},
+                {"$set": data}
+            )
+
+            if result.modified_count > 0:
+                # Return the updated project
+                return await self.get_by_id(project_id)
+            return None
+        except Exception as e:
+            print(f"Error updating project {project_id}: {e}")
+            return None
+
+    async def delete(self, project_id: str) -> bool:
+        try:
+            result = await self.collection.delete_one({"_id": ObjectId(project_id)})
+            return result.deleted_count > 0
+        except Exception as e:
+            print(f"Error deleting project {project_id}: {e}")
+            return False

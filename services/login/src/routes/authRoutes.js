@@ -44,6 +44,37 @@ function authRoutes() {
             });
             res.redirect(`${process.env.AUTH_CALLBACK_URL}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`);
         });
+
+    // Rota para obter informações do usuário autenticado
+    router.get('/me', async (req, res) => {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Token não fornecido' });
+        }
+
+        const token = authHeader.substring(7); // Remove "Bearer "
+
+        try {
+            const payload = jwt.verify(token, process.env.JWT_SECRET);
+            if (payload.type !== 'access') {
+                return res.status(401).json({ error: 'Token inválido' });
+            }
+
+            // Remover campos internos antes de retornar
+            const userInfo = {
+                id: payload.id,
+                name: payload.name,
+                email: payload.email,
+                oauthId: payload.oauthId,
+                provider: payload.provider
+            };
+
+            return res.json(userInfo);
+        } catch (err) {
+            return res.status(401).json({ error: 'Token inválido ou expirado' });
+        }
+    });
+
     // Rota para refresh token
     router.post('/refresh', async (req, res) => {
         const refreshToken = req.body.refreshToken;

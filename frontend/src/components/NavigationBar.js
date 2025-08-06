@@ -10,19 +10,23 @@ const NavigationBar = () => {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="navbar-brand">Portfolio</Link>
+      <Link to="/" className="navbar-brand">
+        <img src="/logo-portfolio.png" alt="Logo Portfolio" className="navbar-logo" /> Portfolio
+      </Link>
       <div className="navbar-collapse">
         <ul className="navbar-nav">
           <li className="nav-item">
-            <Link to="/projects" className="nav-link">Projects</Link>
+            <Link to="/projects" className="nav-link">Projetos</Link>
           </li>
           <li className="nav-item">
-            <Link to="/comments" className="nav-link">Comments</Link>
-          </li>
-          <li className="nav-item logout">
-            <button className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={handleLogout}>Logout</button>
+            <Link to="/comments" className="nav-link">Comentários</Link>
           </li>
         </ul>
+      </div>
+      <div className="navbar-logout">
+        <button className="nav-link logout-btn" onClick={handleLogout}>
+          <span role="img" aria-label="logout" style={{ marginRight: '0.5rem' }}>🔒</span>Logout
+        </button>
       </div>
     </nav>
   );

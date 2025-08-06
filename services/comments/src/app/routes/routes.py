@@ -35,3 +35,23 @@ def post_comment(comment: CommentCreate, user: dict = Depends(get_current_user),
 
     created_comment = service.create_comment(comment, user["id"], user["name"])
     return created_comment
+
+
+@router.delete("/comments/{comment_id}")
+def delete_comment(comment_id: str, user: dict = Depends(get_current_user), service: CommentService = Depends(get_service)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Verificar se o comentário existe e se o usuário é o autor
+    comment = service.get_comment_by_id(comment_id)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    if comment.user_id != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this comment")
+
+    success = service.delete_comment(comment_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    return {"message": "Comment deleted successfully"}

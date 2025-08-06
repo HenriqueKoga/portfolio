@@ -62,7 +62,7 @@ services:
       - ENV=development
       - VAULT_SECRET_PATH=secret/project-service
       - VAULT_ADDR=${VAULT_ADDR}
-      - VAULT_TOKEN=${VAULT_TOKEN}      
+      - VAULT_TOKEN=${VAULT_TOKEN}
     depends_on:
       mongo:
         condition: service_started

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost',
 });
 
 
@@ -26,7 +26,7 @@ apiClient.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const res = await axios.post(`${apiClient.defaults.baseURL}/auth/refresh`, { refreshToken });
+          const res = await axios.post(`${apiClient.defaults.baseURL}/api/auth/refresh`, { refreshToken });
           const newToken = res.data.accessToken;
           localStorage.setItem('token', newToken);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;

@@ -151,4 +151,86 @@ describe('authRoutes', () => {
             type: 'refresh',
         }), 'test_jwt_secret', { expiresIn: '7d' });
     });
+
+    // Testes para a rota /me
+    describe('GET /auth/me', () => {
+        it('should return user info with valid token', async () => {
+            const mockUserData = {
+                id: '123',
+                name: 'Test User',
+                email: 'test@example.com',
+                oauthId: 'oauth123',
+                provider: 'google',
+                type: 'access'
+            };
+
+            jwt.verify.mockReturnValue(mockUserData);
+
+            const response = await request(app)
+                .get('/auth/me')
+                .set('Authorization', 'Bearer valid_token')
+                .expect(200);
+
+            expect(response.body).toEqual({
+                id: '123',
+                name: 'Test User',
+                email: 'test@example.com',
+                oauthId: 'oauth123',
+                provider: 'google'
+            });
+        });
+
+        it('should return 401 if no token provided', async () => {
+            const response = await request(app)
+                .get('/auth/me')
+                .expect(401);
+
+            expect(response.body).toEqual({
+                error: 'Token não fornecido'
+            });
+        });
+
+        it('should return 401 if token is invalid', async () => {
+            jwt.verify.mockImplementation(() => {
+                throw new Error('Invalid token');
+            });
+
+            const response = await request(app)
+                .get('/auth/me')
+                .set('Authorization', 'Bearer invalid_token')
+                .expect(401);
+
+            expect(response.body).toEqual({
+                error: 'Token inválido ou expirado'
+            });
+        });
+
+        it('should return 401 if token is not access type', async () => {
+            jwt.verify.mockReturnValue({
+                id: '123',
+                name: 'Test User',
+                type: 'refresh' // Token de refresh, não access
+            });
+
+            const response = await request(app)
+                .get('/auth/me')
+                .set('Authorization', 'Bearer refresh_token')
+                .expect(401);
+
+            expect(response.body).toEqual({
+                error: 'Token inválido'
+            });
+        });
+
+        it('should return 401 if authorization header format is invalid', async () => {
+            const response = await request(app)
+                .get('/auth/me')
+                .set('Authorization', 'InvalidFormat token')
+                .expect(401);
+
+            expect(response.body).toEqual({
+                error: 'Token não fornecido'
+            });
+        });
+    });
 });

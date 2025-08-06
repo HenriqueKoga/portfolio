@@ -2,6 +2,7 @@ import os
 from typing import List
 
 from app.domain.comment import Comment, CommentRepository
+from bson import ObjectId
 from pymongo import DESCENDING, MongoClient
 
 
@@ -39,3 +40,23 @@ class CommentMongoRepository(CommentRepository):
             del doc["_id"]
             results.append(Comment(**doc))
         return results
+
+    def get_by_id(self, comment_id: str) -> Comment:
+        try:
+            doc = self.collection.find_one({"_id": ObjectId(comment_id)})
+            if doc:
+                doc["id"] = str(doc["_id"])
+                del doc["_id"]
+                return Comment(**doc)
+            return None
+        except Exception as e:
+            print(f"Error getting comment {comment_id}: {e}")
+            return None
+
+    def delete(self, comment_id: str) -> bool:
+        try:
+            result = self.collection.delete_one({"_id": ObjectId(comment_id)})
+            return result.deleted_count > 0
+        except Exception as e:
+            print(f"Error deleting comment {comment_id}: {e}")
+            return False

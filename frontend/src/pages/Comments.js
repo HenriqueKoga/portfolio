@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../services/api';
+import './Comments.css';
 
 const Comments = () => {
   const [publicComments, setPublicComments] = useState([]);
   const [myComments, setMyComments] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [newCommentMessage, setNewCommentMessage] = useState('');
   const [newCommentIsPublic, setNewCommentIsPublic] = useState(true);
 
@@ -25,8 +27,20 @@ const Comments = () => {
     });
   };
 
+  const checkUserAuth = () => {
+    console.log("Checking user authentication...");
+    apiClient.get('/auth/me').then(response => {
+      console.log("User authenticated:", response.data);
+      setCurrentUser(response.data);
+    }).catch(error => {
+      console.error("User not authenticated:", error.response ? error.response.data : error.message);
+      setCurrentUser(null);
+    });
+  };
+
   useEffect(() => {
     fetchComments();
+    checkUserAuth();
   }, []);
 
   const handlePostComment = async (e) => {
@@ -47,79 +61,139 @@ const Comments = () => {
     }
   };
 
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Tem certeza que deseja deletar este comentário?')) {
+      return;
+    }
+
+    try {
+      console.log("Deleting comment:", commentId);
+      await apiClient.delete(`/comments/${commentId}`);
+      console.log("Comment deleted successfully");
+      alert("Comment deleted successfully!");
+      fetchComments();
+    } catch (error) {
+      console.error("Error deleting comment:", error.response ? error.response.data : error.message);
+      alert("Error deleting comment. Check console for details. You might not be authorized.");
+    }
+  };
+
   return (
     <div className="page-content-container">
-      <div className="summary-card">
-        <h2 className="comments-header">Comentários</h2>
+      <h2 className="comments-header">Comentários</h2>
 
-        <div className="post-comment-card">
-          <h3>Postar Novo Comentário</h3>
-          <form onSubmit={handlePostComment}>
-            <div className="form-group">
-              <label htmlFor="commentMessage" className="form-label">Mensagem</label>
-              <textarea
-                className="form-textarea"
-                id="commentMessage"
-                rows="3"
-                value={newCommentMessage}
-                onChange={(e) => setNewCommentMessage(e.target.value)}
-                required
-              ></textarea>
+      {/* Seção de Comentários Públicos */}
+      <div className="comments-section">
+        <h3 className="section-title">Comentários Públicos</h3>
+        <div className="comments-grid">
+          {publicComments.length > 0 ? (
+            publicComments.map(comment => (
+              <div className="comment-card" key={comment.id}>
+                {currentUser && currentUser.id === comment.user_id && (
+                  <button
+                    className="delete-button-top"
+                    onClick={() => handleDeleteComment(comment.id)}
+                    title="Deletar comentário"
+                  >
+                    ×
+                  </button>
+                )}
+                <div className="comment-author">
+                  <strong>{comment.user_name}</strong>
+                </div>
+                <div className="comment-message">
+                  {comment.message}
+                </div>
+                <div className="comment-date">
+                  {new Date(comment.created_at).toLocaleString('pt-BR', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="no-comments-message">
+              Nenhum comentário público encontrado.
             </div>
-            <div className="form-checkbox-group">
-              <input
-                type="checkbox"
-                className="form-checkbox-input"
-                id="commentIsPublic"
-                checked={newCommentIsPublic}
-                onChange={(e) => setNewCommentIsPublic(e.target.checked)}
-              />
-              <label className="form-label" htmlFor="commentIsPublic">Comentário Público</label>
-            </div>
-            <button type="submit" className="submit-button">Postar Comentário</button>
-          </form>
+          )}
         </div>
+      </div>
 
-        <div className="comment-section">
-          <div className="comment-list-section">
-            <h3>Comentários Públicos</h3>
-            {publicComments.length > 0 ? (
-              <ul className="comment-list">
-                {publicComments.map(comment => (
-                  <li className="comment-item" key={comment.id}>
-                    <div>
-                      <strong>{comment.user_name}:</strong> {comment.message}
-                    </div>
-                    <small>{new Date(comment.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</small>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="no-comments-message">
-                Nenhum comentário público encontrado.
+      {/* Seção de Meus Comentários */}
+      <div className="comments-section">
+        <h3 className="section-title">Meus Comentários</h3>
+        <div className="comments-grid">
+          {myComments.length > 0 ? (
+            myComments.map(comment => (
+              <div className="comment-card" key={comment.id}>
+                <button
+                  className="delete-button-top"
+                  onClick={() => handleDeleteComment(comment.id)}
+                  title="Deletar comentário"
+                >
+                  ×
+                </button>
+                <div className="comment-author">
+                  <strong>{comment.user_name}</strong>
+                  <span className="visibility-badge">
+                    {comment.is_public ? 'Público' : 'Privado'}
+                  </span>
+                </div>
+                <div className="comment-message">
+                  {comment.message}
+                </div>
+                <div className="comment-date">
+                  {new Date(comment.created_at).toLocaleString('pt-BR', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </div>
               </div>
-            )}
-          </div>
-          <div className="comment-list-section">
-            <h3>Meus Comentários</h3>
-            {myComments.length > 0 ? (
-              <ul className="comment-list">
-                {myComments.map(comment => (
-                  <li className="comment-item" key={comment.id}>
-                    <div>
-                      <strong>{comment.user_name} ({comment.is_public ? 'Público' : 'Privado'}):</strong> {comment.message}
-                    </div>
-                    <small>{new Date(comment.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</small>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="no-comments-message">
-                Nenhum comentário seu encontrado.
-              </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="no-comments-message">
+              Nenhum comentário seu encontrado.
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Formulário de cadastro - Card separado */}
+      <div className="comments-form-card">
+        <h3>Postar Novo Comentário</h3>
+        <form onSubmit={handlePostComment}>
+          <div className="form-group">
+            <label htmlFor="commentMessage" className="form-label">Mensagem</label>
+            <textarea
+              className="form-textarea"
+              id="commentMessage"
+              rows="3"
+              value={newCommentMessage}
+              onChange={(e) => setNewCommentMessage(e.target.value)}
+              required
+            ></textarea>
+          </div>
+          <div className="form-checkbox-group">
+            <input
+              type="checkbox"
+              className="form-checkbox-input"
+              id="commentIsPublic"
+              checked={newCommentIsPublic}
+              onChange={(e) => setNewCommentIsPublic(e.target.checked)}
+            />
+            <label className="form-label" htmlFor="commentIsPublic">Comentário Público</label>
+          </div>
+          <button type="submit" className="submit-button">Postar Comentário</button>
+        </form>
       </div>
     </div>
   );
