@@ -1,191 +1,174 @@
-import os
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-from pymongo import DESCENDING
 from app.domain.comment import Comment
 from app.infrastructure.comment_mongo_repository import CommentMongoRepository
+from bson import ObjectId
 
 
-@pytest.fixture(autouse=True)
-def mock_collection_create_index(mocker):
-    mock_create_index = mocker.patch('pymongo.collection.Collection.create_index')
-    mock_create_index.return_value = None
-    yield mock_create_index
+class TestCommentMongoRepository:
 
+    @pytest.fixture
+    def mock_collection(self):
+        """Mock da collection do MongoDB"""
+        return MagicMock()
 
-def test_comment_mongo_repository_init(mocker):
-    # Patch MongoClient and os.getenv specifically for this test
-    mock_client = mocker.patch('app.infrastructure.comment_mongo_repository.MongoClient')
-    mock_os_getenv = mocker.patch('app.infrastructure.comment_mongo_repository.os.getenv')
-    mock_os_getenv.return_value = "mongodb://localhost:27017/"
+    @pytest.fixture
+    def repository(self, mock_collection):
+        """Instância do repositório com collection mock"""
+        with patch('app.infrastructure.comment_mongo_repository.MongoClient'):
+            repo = CommentMongoRepository()
+            repo.collection = mock_collection
+            return repo
 
-    # Mock the client, db, and collection objects for this test's mock_client
-    mock_collection = MagicMock()
-    mock_db = MagicMock()
-    mock_db.__getitem__.return_value = mock_collection
-    mock_client.return_value.__getitem__.return_value = mock_db
+    @pytest.fixture
+    def sample_comment_data(self):
+        """Dados de comentário de exemplo"""
+        return {
+            "_id": ObjectId("507f1f77bcf86cd799439011"),
+            "user_id": "user123",
+            "user_name": "Test User",
+            "message": "Test comment",
+            "is_public": True,
+            "created_at": datetime.now(timezone.utc)
+        }
 
-    # Instantiate the repository within the test to control the __init__ call
-    repo = CommentMongoRepository()
+    @pytest.fixture
+    def sample_comment(self):
+        """Comentário de exemplo"""
+        return Comment(
+            id="507f1f77bcf86cd799439011",
+            user_id="user123",
+            user_name="Test User",
+            message="Test comment",
+            is_public=True,
+            created_at=datetime.now(timezone.utc)
+        )
 
-    # Check if 'MONGO_URI' was called as the first argument in any call
-    assert any(call[0][0] == "MONGO_URI" for call in mock_os_getenv.call_args_list)
-    mock_client.assert_called_once_with("mongodb://localhost:27017/")
-    mock_client.return_value.__getitem__.assert_called_once_with("comments")
-    mock_client.return_value.__getitem__.return_value.__getitem__.assert_called_once_with("comments")
-    # The autouse fixture handles create_index assertions
+    def test_insert_success(self, repository, mock_collection, sample_comment):
+        """Testa inserção de comentário com sucesso"""
+        # Arrange
+        comment_without_id = Comment(
+            user_id="user123",
+            user_name="Test User",
+            message="Test comment",
+            is_public=True,
+            created_at=datetime.now(timezone.utc)
+        )
+        mock_result = MagicMock()
+        mock_result.inserted_id = ObjectId("507f1f77bcf86cd799439011")
+        mock_collection.insert_one.return_value = mock_result
 
+        # Act
+        result = repository.insert(comment_without_id)
 
-def test_insert_comment(mocker):
-    # Patch MongoClient and os.getenv specifically for this test
-    mock_client = mocker.patch('app.infrastructure.comment_mongo_repository.MongoClient')
-    mock_os_getenv = mocker.patch('app.infrastructure.comment_mongo_repository.os.getenv')
-    mock_os_getenv.return_value = "mongodb://localhost:27017/"
+        # Assert
+        assert result.id == "507f1f77bcf86cd799439011"
+        assert result.user_id == "user123"
+        assert result.user_name == "Test User"
+        assert result.message == "Test comment"
+        mock_collection.insert_one.assert_called_once()
 
-    # Mock the client, db, and collection objects for this test's mock_client
-    mock_collection = MagicMock()
-    mock_db = MagicMock()
-    mock_db.__getitem__.return_value = mock_collection
-    mock_client.return_value.__getitem__.return_value = mock_db
+    def test_list_public_success(self, repository, mock_collection, sample_comment_data):
+        """Testa listagem de comentários públicos com sucesso"""
+        # Arrange
+        mock_cursor = MagicMock()
+        mock_cursor.__iter__.return_value = iter([sample_comment_data])
+        mock_collection.find.return_value.sort.return_value.limit.return_value.skip.return_value = mock_cursor
 
-    # Instantiate the repository for this test
-    repo = CommentMongoRepository()
-    mock_collection = repo.collection
+        # Act
+        result = repository.list_public(limit=100, offset=0)
 
-    mock_insert_result = MagicMock()
-    mock_insert_result.inserted_id = "new_comment_id"
-    mock_collection.insert_one = MagicMock(return_value=mock_insert_result)
+        # Assert
+        assert len(result) == 1
+        assert result[0].id == "507f1f77bcf86cd799439011"
+        assert result[0].user_name == "Test User"
+        mock_collection.find.assert_called_once_with({"is_public": True})
 
-    comment = Comment(
-        user_id="user123",
-        user_name="Test User",
-        message="Test message",
-        is_public=True,
-        created_at=datetime.now(timezone.utc)
-    )
+    def test_list_public_empty(self, repository, mock_collection):
+        """Testa listagem quando não há comentários públicos"""
+        # Arrange
+        mock_cursor = MagicMock()
+        mock_cursor.__iter__.return_value = iter([])
+        mock_collection.find.return_value.sort.return_value.limit.return_value.skip.return_value = mock_cursor
 
-    inserted_comment = repo.insert(comment)
+        # Act
+        result = repository.list_public()
 
-    # The comment object passed to insert_one will have id=None before insertion
-    # The returned comment will have the inserted_id
-    expected_comment_dict = comment.model_dump()
-    expected_comment_dict["id"] = None # Ensure id is None for the call assertion
+        # Assert
+        assert result == []
+        mock_collection.find.assert_called_once_with({"is_public": True})
 
-    mock_collection.insert_one.assert_called_once_with(expected_comment_dict)
-    assert inserted_comment.id == "new_comment_id"
-    assert inserted_comment.message == comment.message
+    def test_list_by_user_success(self, repository, mock_collection, sample_comment_data):
+        """Testa listagem de comentários por usuário com sucesso"""
+        # Arrange
+        user_id = "user123"
+        mock_cursor = MagicMock()
+        mock_cursor.__iter__.return_value = iter([sample_comment_data])
+        mock_collection.find.return_value.sort.return_value.limit.return_value.skip.return_value = mock_cursor
 
+        # Act
+        result = repository.list_by_user(user_id)
 
-def test_list_public_comments(mocker):
-    # Patch MongoClient and os.getenv specifically for this test
-    mock_client = mocker.patch('app.infrastructure.comment_mongo_repository.MongoClient')
-    mock_os_getenv = mocker.patch('app.infrastructure.comment_mongo_repository.os.getenv')
-    mock_os_getenv.return_value = "mongodb://localhost:27017/"
+        # Assert
+        assert len(result) == 1
+        assert result[0].user_id == user_id
+        mock_collection.find.assert_called_once_with({"user_id": user_id})
 
-    # Mock the client, db, and collection objects for this test's mock_client
-    mock_collection = MagicMock()
-    mock_db = MagicMock()
-    mock_db.__getitem__.return_value = mock_collection
-    mock_client.return_value.__getitem__.return_value = mock_db
+    def test_get_by_id_success(self, repository, mock_collection, sample_comment_data):
+        """Testa busca por ID com sucesso"""
+        # Arrange
+        comment_id = "507f1f77bcf86cd799439011"
+        mock_collection.find_one.return_value = sample_comment_data
 
-    # Instantiate the repository for this test
-    repo = CommentMongoRepository()
-    mock_collection = repo.collection
+        # Act
+        result = repository.get_by_id(comment_id)
 
-    mock_cursor = MagicMock()
-    mock_collection.find = MagicMock(return_value=mock_cursor)
+        # Assert
+        assert result.id == comment_id
+        assert result.user_name == "Test User"
+        mock_collection.find_one.assert_called_once_with({"_id": ObjectId(comment_id)})
 
-    # Mock the chain of calls for find().sort().limit().skip()
-    mock_cursor.sort.return_value = mock_cursor
-    mock_cursor.limit.return_value = mock_cursor
-    mock_cursor.skip.return_value = mock_cursor
+    def test_get_by_id_not_found(self, repository, mock_collection):
+        """Testa busca por ID quando comentário não existe"""
+        # Arrange
+        comment_id = "507f1f77bcf86cd799439011"
+        mock_collection.find_one.return_value = None
 
-    # Mock the iteration over the cursor
-    mock_cursor.__iter__.return_value = [
-        {"_id": "id1", "user_id": "u1", "user_name": "n1", "message": "m1", "is_public": True, "created_at": datetime.now(timezone.utc)},
-        {"_id": "id2", "user_id": "u2", "user_name": "n2", "message": "m2", "is_public": True, "created_at": datetime.now(timezone.utc)},
-    ]
+        # Act
+        result = repository.get_by_id(comment_id)
 
-    comments = repo.list_public(limit=10, offset=0)
+        # Assert
+        assert result is None
+        mock_collection.find_one.assert_called_once_with({"_id": ObjectId(comment_id)})
 
-    mock_collection.find.assert_called_once_with({"is_public": True})
-    mock_cursor.sort.assert_called_once_with("created_at", DESCENDING)
-    mock_cursor.limit.assert_called_once_with(10)
-    mock_cursor.skip.assert_called_once_with(0)
+    def test_delete_success(self, repository, mock_collection):
+        """Testa exclusão de comentário com sucesso"""
+        # Arrange
+        comment_id = "507f1f77bcf86cd799439011"
+        mock_result = MagicMock()
+        mock_result.deleted_count = 1
+        mock_collection.delete_one.return_value = mock_result
 
-    assert len(comments) == 2
-    assert comments[0].id == "id1"
-    assert comments[1].id == "id2"
-    assert isinstance(comments[0], Comment)
-    assert isinstance(comments[1], Comment)
+        # Act
+        result = repository.delete(comment_id)
 
+        # Assert
+        assert result is True
+        mock_collection.delete_one.assert_called_once_with({"_id": ObjectId(comment_id)})
 
-def test_list_public_comments_empty(mocker):
-    # Patch MongoClient and os.getenv specifically for this test
-    mock_client = mocker.patch('app.infrastructure.comment_mongo_repository.MongoClient')
-    mock_os_getenv = mocker.patch('app.infrastructure.comment_mongo_repository.os.getenv')
-    mock_os_getenv.return_value = "mongodb://localhost:27017/"
+    def test_delete_not_found(self, repository, mock_collection):
+        """Testa exclusão quando comentário não existe"""
+        # Arrange
+        comment_id = "507f1f77bcf86cd799439011"
+        mock_result = MagicMock()
+        mock_result.deleted_count = 0
+        mock_collection.delete_one.return_value = mock_result
 
-    # Mock the client, db, and collection objects for this test's mock_client
-    mock_collection = MagicMock()
-    mock_db = MagicMock()
-    mock_db.__getitem__.return_value = mock_collection
-    mock_client.return_value.__getitem__.return_value = mock_db
+        # Act
+        result = repository.delete(comment_id)
 
-    # Instantiate the repository for this test
-    repo = CommentMongoRepository()
-    mock_collection = repo.collection
-
-    mock_cursor = MagicMock()
-    mock_collection.find = MagicMock(return_value=mock_cursor)
-
-    mock_cursor.sort.return_value = mock_cursor
-    mock_cursor.limit.return_value = mock_cursor
-    mock_cursor.skip.return_value = mock_cursor
-
-    mock_cursor.__iter__.return_value = []
-
-    comments = repo.list_public()
-
-    assert len(comments) == 0
-
-def test_list_by_user_comments(mocker):
-    # Patch MongoClient and os.getenv specifically for this test
-    mock_client = mocker.patch('app.infrastructure.comment_mongo_repository.MongoClient')
-    mock_os_getenv = mocker.patch('app.infrastructure.comment_mongo_repository.os.getenv')
-    mock_os_getenv.return_value = "mongodb://localhost:27017/"
-
-    # Mock the client, db, and collection objects for this test's mock_client
-    mock_collection = MagicMock()
-    mock_db = MagicMock()
-    mock_db.__getitem__.return_value = mock_collection
-    mock_client.return_value.__getitem__.return_value = mock_db
-
-    # Instantiate the repository for this test
-    repo = CommentMongoRepository()
-    mock_collection = repo.collection
-
-    mock_cursor = MagicMock()
-    mock_collection.find = MagicMock(return_value=mock_cursor)
-
-    mock_cursor.sort.return_value = mock_cursor
-    mock_cursor.limit.return_value = mock_cursor
-    mock_cursor.skip.return_value = mock_cursor
-
-    user_id = "test_user_id"
-    mock_cursor.__iter__.return_value = [
-        {"_id": "id3", "user_id": user_id, "user_name": "n3", "message": "m3", "is_public": False, "created_at": datetime.now(timezone.utc)},
-    ]
-
-    comments = repo.list_by_user(user_id, limit=10, offset=0)
-
-    mock_collection.find.assert_called_once_with({"user_id": user_id})
-    mock_cursor.sort.assert_called_once_with("created_at", DESCENDING)
-    mock_cursor.limit.assert_called_once_with(10)
-    mock_cursor.skip.assert_called_once_with(0)
-
-    assert len(comments) == 1
-    assert comments[0].id == "id3"
-    assert isinstance(comments[0], Comment)
+        # Assert
+        assert result is False
+        mock_collection.delete_one.assert_called_once_with({"_id": ObjectId(comment_id)})

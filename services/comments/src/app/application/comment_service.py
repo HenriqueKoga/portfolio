@@ -33,3 +33,9 @@ class CommentService:
 
     def get_comments_by_user(self, user_id: str) -> List[Comment]:
         return self.repository.list_by_user(user_id)
+
+    def get_comment_by_id(self, comment_id: str) -> Comment:
+        return self.repository.get_by_id(comment_id)
+
+    def delete_comment(self, comment_id: str) -> bool:
+        return self.repository.delete(comment_id)

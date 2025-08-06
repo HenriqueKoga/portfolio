@@ -15,3 +15,9 @@ class ProjectService:
 
     async def create_project(self, project: Project) -> Project:
         return await self.repository.create(project)
+
+    async def update_project(self, project_id: str, project: Project) -> Optional[Project]:
+        return await self.repository.update(project_id, project)
+
+    async def delete_project(self, project_id: str) -> bool:
+        return await self.repository.delete(project_id)

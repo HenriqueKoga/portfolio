@@ -24,3 +24,9 @@ class ProjectRepository(ABC):
 
     @abstractmethod
     def create(self, project: Project) -> Project: pass
+
+    @abstractmethod
+    def update(self, project_id: str, project: Project) -> Optional[Project]: pass
+
+    @abstractmethod
+    def delete(self, project_id: str) -> bool: pass

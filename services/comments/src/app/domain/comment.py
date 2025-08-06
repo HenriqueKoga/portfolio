@@ -28,3 +28,9 @@ class CommentRepository(ABC):
 
     @abstractmethod
     def list_by_user(self, user_id: str, limit: int = 100, offset: int = 0) -> list[Comment]: ...
+
+    @abstractmethod
+    def get_by_id(self, comment_id: str) -> Comment: ...
+
+    @abstractmethod
+    def delete(self, comment_id: str) -> bool: ...
